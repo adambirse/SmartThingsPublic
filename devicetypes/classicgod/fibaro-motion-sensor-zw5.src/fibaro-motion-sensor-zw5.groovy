@@ -16,7 +16,7 @@
  *
  */
 metadata {
-	definition (name: "Fibaro Motion Sensor ZW5", namespace: "ClassicGOD", author: "Artur Draga") {
+	definition (name: "Fibaro Motion Sensor ZW5", namespace: "ClassicGOD", author: "Adam Birse") {
 		capability "Battery"
 		capability "Configuration"
 		capability "Illuminance Measurement"
@@ -29,20 +29,20 @@ metadata {
 
 		command "resetMotionTile"
 		command "forceSync"
-		
+
 		fingerprint deviceId: "0x0701", inClusters: "0x5E, 0x20, 0x86, 0x72, 0x5A, 0x59, 0x85, 0x73, 0x84, 0x80, 0x71, 0x56, 0x70, 0x31, 0x8E, 0x22, 0x30, 0x9C, 0x98, 0x7A", outClusters: ""
 		fingerprint deviceId: "0x0701", inClusters: "0x5E, 0x20, 0x86, 0x72, 0x5A, 0x59, 0x85, 0x73, 0x84, 0x80, 0x71, 0x56, 0x70, 0x31, 0x8E, 0x22, 0x30, 0x9C, 0x7A", outClusters: ""
 	}
-	
+
 	tiles(scale: 2) {
 		multiAttributeTile(name:"FGMS", type:"lighting", width:6, height:4) {
 			tileAttribute("device.motion", key:"PRIMARY_CONTROL") {
 				attributeState("inactive", label:"no motion", icon:"st.motion.motion.inactive", backgroundColor:"#ffffff")
-				attributeState("active", label:"motion", icon:"st.motion.motion.active", backgroundColor:"#00a0dc")   
+				attributeState("active", label:"motion", icon:"st.motion.motion.active", backgroundColor:"#00a0dc")
 			}
 			tileAttribute("device.lastEvent", key:"SECONDARY_CONTROL") {
 				attributeState("val", label:'${currentValue}')
-			}  
+			}
 		}
 		valueTile("tamper", "device.tamper", inactiveLabel: false, width: 2, height: 2, decoration: "flat") {
 			state "val", label:'Tamper:\n${currentValue}'
@@ -79,7 +79,7 @@ metadata {
 		main "FGMS"
 		details(["FGMS","tamper","temperature","illuminance","motionTile","syncStatus","battery"])
 	}
-	
+
 	preferences {
 		input ( name: "logging", title: "Logging", type: "boolean", required: false )
 		input ( name: "wakeUpInterval", title: "Wake Up interval", description: "How often should device wake up in seconds (default 7200)", type: "number", range: "1..65535", defaultValue: 7200, required: false )
@@ -178,7 +178,7 @@ private motionEvent(Integer sensorType, value) {
 			runIn(2,"axisEvent")
 			break
 	}
-	
+
 }
 
 private axisEvent() {
@@ -245,15 +245,15 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 		sendEvent(name: "syncStatus", value: "inProgress")
 		runIn((5+cmdCount*1.5), syncCheck)
 	}
-	if (cmdsSet) { 
+	if (cmdsSet) {
 		cmds = encapSequence(cmdsSet,500)
-		cmds << "delay 500" 
+		cmds << "delay 500"
 	}
 	cmds = cmds + encapSequence(cmdsGet,1000)
 	cmds << "delay "+(5000+cmdCount*1500)
 	cmds << encap(zwave.wakeUpV1.wakeUpNoMoreInformation())
 	results = results + response(cmds)
-	
+
 	return results
 }
 
@@ -270,7 +270,7 @@ def zwaveEvent(physicalgraph.zwave.commands.applicationstatusv1.ApplicationRejec
 	if (device.currentValue("syncStatus") == "inProgress") { sendEvent(name: "syncStatus", value:"failed") }
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpIntervalReport  cmd) { 
+def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpIntervalReport  cmd) {
 	log.debug "interval! " + cmd
 }
 
@@ -282,7 +282,7 @@ def syncCheck() {
 		parameterMap().each {
 			if (state."$it.key".state == "notSynced" ) {
 				count = count + 1
-			} 
+			}
 		}
 	}
 	if (count == 0) {
@@ -297,19 +297,19 @@ def syncCheck() {
 }
 
 // Copied from Fibaro official code.
-def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) { 
+def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
 	log.debug "manufacturerId:   ${cmd.manufacturerId}"
 	log.debug "manufacturerName: ${cmd.manufacturerName}"
 	log.debug "productId:		${cmd.productId}"
 	log.debug "productTypeId:	${cmd.productTypeId}"
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.DeviceSpecificReport cmd) { 
+def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.DeviceSpecificReport cmd) {
 	log.debug "deviceIdData:				${cmd.deviceIdData}"
 	log.debug "deviceIdDataFormat:		  ${cmd.deviceIdDataFormat}"
 	log.debug "deviceIdDataLengthIndicator: ${cmd.deviceIdDataLengthIndicator}"
 	log.debug "deviceIdType:				${cmd.deviceIdType}"
-	
+
 	if (cmd.deviceIdType == 1 && cmd.deviceIdDataFormat == 1) {//serial number in binary format
 		String serialNumber = "h'"
 		cmd.deviceIdData.each{ data ->
@@ -320,7 +320,7 @@ def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.DeviceSpecifi
 	}
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {	
+def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
 	updateDataValue("version", "${cmd.applicationVersion}.${cmd.applicationSubVersion}")
 	log.debug "applicationVersion:	  ${cmd.applicationVersion}"
 	log.debug "applicationSubVersion:   ${cmd.applicationSubVersion}"
@@ -339,7 +339,7 @@ def configure() {
 	sendEvent(name: "checkInterval", value: 8 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
 
 	def cmds = []
-	
+
 	cmds += zwave.wakeUpV2.wakeUpIntervalSet(seconds: 7200, nodeid: zwaveHubNodeId)//FGMS' default wake up interval
 	cmds += zwave.manufacturerSpecificV2.manufacturerSpecificGet()
 	cmds += zwave.manufacturerSpecificV2.deviceSpecificGet()
@@ -349,7 +349,7 @@ def configure() {
 	cmds += zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType: 1, scale: 0)
 	cmds += zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType: 3, scale: 1)
 	cmds += zwave.wakeUpV2.wakeUpNoMoreInformation()
-	
+
 	encapSequence(cmds, 500)
 }
 
@@ -358,7 +358,7 @@ def configure() {
 ## Z-Wave Toolkit ##
 ####################
 */
-def parse(String description) {	  
+def parse(String description) {
 	def result = []
 	logging("${device.displayName} - Parsing: ${description}")
 	if (description.startsWith("Err 106")) {
@@ -372,7 +372,7 @@ def parse(String description) {
 	} else if (description == "updated") {
 		return null
 	} else {
-		def cmd = zwave.parse(description, cmdVersions()) 
+		def cmd = zwave.parse(description, cmdVersions())
 		if (cmd) {
 			logging("${device.displayName} - Parsed: ${cmd}")
 			zwaveEvent(cmd)
@@ -381,7 +381,7 @@ def parse(String description) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
-	def encapsulatedCommand = cmd.encapsulatedCommand(cmdVersions()) 
+	def encapsulatedCommand = cmd.encapsulatedCommand(cmdVersions())
 	if (encapsulatedCommand) {
 		logging("${device.displayName} - Parsed SecurityMessageEncapsulation into: ${encapsulatedCommand}")
 		zwaveEvent(encapsulatedCommand)
@@ -430,13 +430,13 @@ private crcEncap(physicalgraph.zwave.Command cmd) {
 }
 
 private encap(physicalgraph.zwave.Command cmd) {
-	if (zwaveInfo.zw.contains("s") && zwaveInfo.sec.contains(Integer.toHexString(cmd.commandClassId).toUpperCase())) { 
+	if (zwaveInfo.zw.contains("s") && zwaveInfo.sec.contains(Integer.toHexString(cmd.commandClassId).toUpperCase())) {
 		// if device is included securly and the command is on list of commands dupported with secure encapsulation
 		secEncap(cmd)
-	} else if (zwaveInfo.cc.contains("56")){ 
+	} else if (zwaveInfo.cc.contains("56")){
 		// if device supports crc16
 		crcEncap(cmd)
-	} else { // if all else fails send plain command 
+	} else { // if all else fails send plain command
 		logging("${device.displayName} - no encapsulation supported for command: $cmd","info")
 		cmd.format()
 	}
@@ -448,7 +448,7 @@ private encapSequence(cmds, delay=250) {
 
 private List intToParam(Long value, Integer size = 1) {
 	def result = []
-	size.times { 
+	size.times {
 		result = result.plus(0, (value & 0xFF) as Short)
 		value = (value >> 8)
 	}
@@ -466,56 +466,56 @@ private Map cmdVersions() {
 }
 
 private parameterMap() {[
-	[key: "motionSensitivity", num: 1, size: 2, type: "number", def: 15, min: 8, max: 255, title: "Sensitivity", descr: null], 
-	[key: "motionBlindTime", num: 2, size: 1, type: "number", def: 15, min: 0, max: 15,  title: "Blind time", descr: null], 
-	//[key: "motionPulseCounter", num: 3, size: 1, type: "enum", options: [0: "1 Pulse", 1: "2 Pulses (default)", 2: "3 Pulses", 3: "4 Pulses"], def: 1, title: "Pulse counter", descr: null], 
-	[key: "motionWindowTime", num: 4, size: 1, type: "enum", options: [0: "0 - 4 sec", 1: "1 - 8 sec", 2: "2 - 12 sec (default)", 3: "3 - 16 sec"], def: "2", title: "Time Window", descr: null], 
-	[key: "motionCancelationDelay", num: 6, size: 2, type: "number", def: 30, min: 1, max: 32767, title: "Alarm cancellation delay", descr: null], 
-	[key: "motionOperatingMode", num: 8, size: 1, type: "enum", options: [0: "0 - Always Active (default)", 1: "1 - Active During Day", 2: "2 - Active During Night"], def: "0", title: "Operating mode", descr: null], 
-	[key: "motionNightDay", num: 9, size: 2, type: "number", def: 200, min: 1, max: 32767, title: "Night/day", descr: null], 
-	[key: "tamperSensitivity", num: 20, size: 1, type: "number", def: 20, min: 0, max: 121, title: "Sensitivity", descr: null], 
-	[key: "tamperCancelationDelay", num: 22, size: 2, type: "number", def: 30, min: 1, max: 32767, title: "Alarm cancellation delay", descr: null], 
-	[key: "tamperOperatingMode", num: 24, size: 1, type: "enum", options: [0: "0 - Tamper only (default)", 1: "1 - Tamper and Earthquake Detector", 2: "2 - Tamper and Orientation"], def: "0", title: "Operating mode", descr: null], 
-	[key: "tamperAlarmCancelation", num: 25, size: 1, type: "enum", options: [0: "0 - Do not send tamper cancellation report", 1: "1 - Send tamper cancellation report (default)"], def: "1", title: "Alarm cancellation", descr: null], 
-	[key: "illuminanceThreshold", num: 40, size: 2, type: "number", def: 200, min: 0, max: 32767, title: "Reporting threshold", descr: null], 
-	[key: "illuminanceInterval", num: 42, size: 2, type: "number", def: 3600, min: 0, max: 32767, title: "Reporting interval", descr: null], 
-	[key: "temperatureThreshold", num: 60, size: 2, type: "number", def: 10, min: 0, max: 255, title: "Reporting threshold", descr: null], 
-	[key: "temperatureMeasuringInterval", num: 62, size: 2, type: "number", def: 900, min: 0, max: 32767, title: "Measuring interval", descr: null],
-	[key: "temperatureReportInterval", num: 64, size: 2, type: "number", def: 0, min: 0, max: 32767, title: "Reporting Interval", descr: null], 
-	[key: "temperatureOffset", num: 66, size: 2, type: "number", def: 0, min: -1000, max: 1000, title: "Temperature offset", descr: null], 
+	[key: "motionSensitivity", num: 1, size: 2, type: "number", def: 15, min: 8, max: 255, title: "Sensitivity", descr: null],
+	[key: "motionBlindTime", num: 2, size: 1, type: "number", def: 15, min: 0, max: 15,  title: "Blind time", descr: null],
+	//[key: "motionPulseCounter", num: 3, size: 1, type: "enum", options: [0: "1 Pulse", 1: "2 Pulses (default)", 2: "3 Pulses", 3: "4 Pulses"], def: 1, title: "Pulse counter", descr: null],
+	[key: "motionWindowTime", num: 4, size: 1, type: "enum", options: [0: "0 - 4 sec", 1: "1 - 8 sec", 2: "2 - 12 sec (default)", 3: "3 - 16 sec"], def: "2", title: "Time Window", descr: null],
+	[key: "motionCancelationDelay", num: 6, size: 2, type: "number", def: 30, min: 1, max: 32767, title: "Alarm cancellation delay", descr: null],
+	[key: "motionOperatingMode", num: 8, size: 1, type: "enum", options: [0: "0 - Always Active (default)", 1: "1 - Active During Day", 2: "2 - Active During Night"], def: "0", title: "Operating mode", descr: null],
+	[key: "motionNightDay", num: 9, size: 2, type: "number", def: 200, min: 1, max: 32767, title: "Night/day", descr: null],
+	[key: "tamperSensitivity", num: 20, size: 1, type: "number", def: 20, min: 0, max: 121, title: "Sensitivity", descr: null],
+	[key: "tamperCancelationDelay", num: 22, size: 2, type: "number", def: 30, min: 1, max: 32767, title: "Alarm cancellation delay", descr: null],
+	[key: "tamperOperatingMode", num: 24, size: 1, type: "enum", options: [0: "0 - Tamper only (default)", 1: "1 - Tamper and Earthquake Detector", 2: "2 - Tamper and Orientation"], def: "0", title: "Operating mode", descr: null],
+	[key: "tamperAlarmCancelation", num: 25, size: 1, type: "enum", options: [0: "0 - Do not send tamper cancellation report", 1: "1 - Send tamper cancellation report (default)"], def: "1", title: "Alarm cancellation", descr: null],
+	[key: "illuminanceThreshold", num: 40, size: 2, type: "number", def: 30, min: 0, max: 32767, title: "Reporting threshold", descr: null],
+	[key: "illuminanceInterval", num: 42, size: 2, type: "number", def: 900, min: 0, max: 32767, title: "Reporting interval", descr: null],
+	[key: "temperatureThreshold", num: 60, size: 2, type: "number", def: 10, min: 0, max: 255, title: "Reporting threshold", descr: null],
+	[key: "temperatureMeasuringInterval", num: 62, size: 2, type: "number", def: 2000, min: 0, max: 32767, title: "Measuring interval", descr: null],
+	[key: "temperatureReportInterval", num: 64, size: 2, type: "number", def: 0, min: 0, max: 32767, title: "Reporting Interval", descr: null],
+	[key: "temperatureOffset", num: 66, size: 2, type: "number", def: 0, min: -1000, max: 1000, title: "Temperature offset", descr: null],
 	[key: "ledMode", num: 80, size: 1, type: "enum", options: [
-			0: "0 - LED inactive", 
-			1: "1 - temp Dependent (1 long blink)", 
-			2: "2 - flashlight Mode (1 long blink)", 
-			3: "3 - white (1 long blink)", 
-			4: "4 - red (1 long blink)", 
-			5: "5 - green (1 long blink)", 
-			6: "6 - blue (1 long blink)", 
-			7: "7 - yellow (1 long blink)", 
-			8: "8 - cyan (1 long blink)", 
-			9: "9 - magenta (1 long blink)", 
-			10: "10 - temp dependent (1 long 1 short blink) (default)", 
-			11: "11 - flashlight Mode (1 long 1 short blink)", 
-			12: "12 - white (1 long 1 short blink)", 
-			13: "13 - red (1 long 1 short blink)", 
-			14: "14 - green (1 long 1 short blink)", 
-			15: "15 - blue (1 long 1 short blink)", 
-			16: "16 - yellow (1 long 1 short blink)", 
-			17: "17 - cyan (1 long 1 short blink)", 
+			0: "0 - LED inactive",
+			1: "1 - temp Dependent (1 long blink)",
+			2: "2 - flashlight Mode (1 long blink)",
+			3: "3 - white (1 long blink)",
+			4: "4 - red (1 long blink)",
+			5: "5 - green (1 long blink)",
+			6: "6 - blue (1 long blink)",
+			7: "7 - yellow (1 long blink)",
+			8: "8 - cyan (1 long blink)",
+			9: "9 - magenta (1 long blink)",
+			10: "10 - temp dependent (1 long 1 short blink) (default)",
+			11: "11 - flashlight Mode (1 long 1 short blink)",
+			12: "12 - white (1 long 1 short blink)",
+			13: "13 - red (1 long 1 short blink)",
+			14: "14 - green (1 long 1 short blink)",
+			15: "15 - blue (1 long 1 short blink)",
+			16: "16 - yellow (1 long 1 short blink)",
+			17: "17 - cyan (1 long 1 short blink)",
 			18: "18 - magenta (1 long 1 short blink)",
-			19: "19 - temp Dependent (1 long 2 short blink)", 
-			20: "20 - white (1 long 2 short blinks)", 
-			21: "21 - red (1 long 2 short blinks)", 
-			22: "22 - green (1 long 2 short blinks)", 
-			23: "23 - blue (1 long 2 short blinks)", 
-			24: "24 - yellow (1 long 2 short blinks)", 
-			25: "25 - cyan (1 long 2 short blinks)", 
+			19: "19 - temp Dependent (1 long 2 short blink)",
+			20: "20 - white (1 long 2 short blinks)",
+			21: "21 - red (1 long 2 short blinks)",
+			22: "22 - green (1 long 2 short blinks)",
+			23: "23 - blue (1 long 2 short blinks)",
+			24: "24 - yellow (1 long 2 short blinks)",
+			25: "25 - cyan (1 long 2 short blinks)",
 			26: "26 - magenta (1 long 2 short blinks)"
-		], def: "10", title: "Signalling mode", descr: null], 
-	[key: "ledBrightness", num: 81, size: 1, type: "number", def: 50, min: 0, max: 100, title: "Brightness", descr: null], 
-	[key: "ledLowBrightness", num: 82, size: 2, type: "number", def: 100, min: 0, max: 32767, title: "Illuminance for low indicator brightness", descr: null], 
-	[key: "ledHighBrightness", num: 83, size: 2, type: "number", def: 1000, min: 0, max: 32767, title: "Illuminance for high indicator brightness", descr: null], 
-	[key: "ledTemperatureBlue", num: 86, size: 2, type: "number", def: 18, min: 0, max: 255, title: "Temperature for blue colour", descr: null], 
-	[key: "ledTemperatureRed", num: 87, size: 2, type: "number", def: 28, min: 0, max: 255, title: "Temperature for red colour", descr: null], 
+		], def: "0", title: "Signalling mode", descr: null],
+	[key: "ledBrightness", num: 81, size: 1, type: "number", def: 50, min: 0, max: 100, title: "Brightness", descr: null],
+	[key: "ledLowBrightness", num: 82, size: 2, type: "number", def: 100, min: 0, max: 32767, title: "Illuminance for low indicator brightness", descr: null],
+	[key: "ledHighBrightness", num: 83, size: 2, type: "number", def: 1000, min: 0, max: 32767, title: "Illuminance for high indicator brightness", descr: null],
+	[key: "ledTemperatureBlue", num: 86, size: 2, type: "number", def: 18, min: 0, max: 255, title: "Temperature for blue colour", descr: null],
+	[key: "ledTemperatureRed", num: 87, size: 2, type: "number", def: 28, min: 0, max: 255, title: "Temperature for red colour", descr: null],
 	[key: "ledTamperAlarm", num: 89, size: 1, type: "enum", options: [0: "0 - tamper alarm is not indicated", 1: "1 - tamper alarm is indicated (default)"], def: "1", title: "Tamper alarm", descr: null]
 ]}
